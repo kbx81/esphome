@@ -7,8 +7,6 @@ namespace ssd1351_base {
 
 static const char *TAG = "ssd1351";
 
-static const uint16_t BLACK = 0;
-static const uint16_t WHITE = 0xffff;
 static const uint16_t SSD1351_COLORMASK = 0xffff;
 static const uint8_t SSD1351_MAX_CONTRAST = 15;
 static const uint8_t SSD1351_BYTESPERPIXEL = 2;
@@ -87,9 +85,9 @@ void SSD1351::setup() {
   this->data(0x80);
   this->data(0xC8);
   set_brightness(this->brightness_);
-  this->fill(BLACK);  // clear display - ensures we do not see garbage at power-on
-  this->display();    // ...write buffer, which actually clears the display's memory
-  this->turn_on();    // display ON
+  this->fill(COLOR_BLACK);  // clear display - ensures we do not see garbage at power-on
+  this->display();          // ...write buffer, which actually clears the display's memory
+  this->turn_on();          // display ON
 }
 void SSD1351::display() {
   this->command(SSD1351_SETCOLUMN);  // set column address
@@ -148,17 +146,17 @@ int SSD1351::get_width_internal() {
 size_t SSD1351::get_buffer_length_() {
   return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) * size_t(SSD1351_BYTESPERPIXEL);
 }
-void HOT SSD1351::draw_absolute_pixel_internal(int x, int y, Color color) {
+void HOT SSD1351::draw_absolute_pixel_internal(int x, int y, const Color *color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
-  const uint32_t color565 = color.to_rgb_565();
+  const uint32_t color565 = color->to_rgb_565();
   // where should the bits go in the big buffer array? math...
   uint16_t pos = (x + y * this->get_width_internal()) * SSD1351_BYTESPERPIXEL;
   this->buffer_[pos++] = (color565 >> 8) & 0xff;
   this->buffer_[pos] = color565 & 0xff;
 }
-void SSD1351::fill(Color color) {
-  const uint32_t color565 = color.to_rgb_565();
+void SSD1351::fill(const Color *color) {
+  const uint32_t color565 = color->to_rgb_565();
   for (uint32_t i = 0; i < this->get_buffer_length_(); i++)
     if (i & 1) {
       this->buffer_[i] = color565 & 0xff;

@@ -7,8 +7,6 @@ namespace ssd1306_base {
 
 static const char *TAG = "ssd1306";
 
-static const uint8_t BLACK = 0;
-static const uint8_t WHITE = 1;
 static const uint8_t SSD1306_MAX_CONTRAST = 255;
 
 static const uint8_t SSD1306_COMMAND_DISPLAY_OFF = 0xAE;
@@ -89,8 +87,8 @@ void SSD1306::setup() {
 
   set_brightness(this->brightness_);
 
-  this->fill(BLACK);  // clear display - ensures we do not see garbage at power-on
-  this->display();    // ...write buffer, which actually clears the display's memory
+  this->fill(COLOR_BLACK);  // clear display - ensures we do not see garbage at power-on
+  this->display();          // ...write buffer, which actually clears the display's memory
 
   this->turn_on();
 }
@@ -182,20 +180,20 @@ int SSD1306::get_width_internal() {
 size_t SSD1306::get_buffer_length_() {
   return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) / 8u;
 }
-void HOT SSD1306::draw_absolute_pixel_internal(int x, int y, Color color) {
+void HOT SSD1306::draw_absolute_pixel_internal(int x, int y, const Color *color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
 
   uint16_t pos = x + (y / 8) * this->get_width_internal();
   uint8_t subpos = y & 0x07;
-  if (color.is_on()) {
+  if (color->is_on()) {
     this->buffer_[pos] |= (1 << subpos);
   } else {
     this->buffer_[pos] &= ~(1 << subpos);
   }
 }
-void SSD1306::fill(Color color) {
-  uint8_t fill = color.is_on() ? 0xFF : 0x00;
+void SSD1306::fill(const Color *color) {
+  uint8_t fill = color->is_on() ? 0xFF : 0x00;
   for (uint32_t i = 0; i < this->get_buffer_length_(); i++)
     this->buffer_[i] = fill;
 }

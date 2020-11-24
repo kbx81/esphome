@@ -7,8 +7,8 @@
 namespace esphome {
 namespace st7789v {
 
-static const uint8_t BLACK = 0;
-static const uint8_t WHITE = 1;
+static const uint16_t BLACK = 0;
+static const uint16_t WHITE = 1;
 
 static const uint8_t ST7789_NOP = 0x00;        // No Operation
 static const uint8_t ST7789_SWRESET = 0x01;    // Software Reset
@@ -144,7 +144,7 @@ class ST7789V : public PollingComponent,
 
   void draw_filled_rect_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color);
 
-  void draw_absolute_pixel_internal(int x, int y, Color color) override;
+  void draw_absolute_pixel_internal(int x, int y, const Color *color) override;
 };
 
 }  // namespace st7789v

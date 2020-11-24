@@ -129,8 +129,8 @@ uint8_t ILI9341Display::convert_to_8bit_color_(uint16_t color_16bit) {
   return ((b / 0x0A) | ((g / 0x09) << 2) | ((r / 0x04) << 5));
 }
 
-void ILI9341Display::fill(Color color) {
-  auto color565 = color.to_rgb_565();
+void ILI9341Display::fill(const Color *color) {
+  auto color565 = color->to_rgb_565();
   memset(this->buffer_, convert_to_8bit_color_(color565), this->get_buffer_length_());
   this->x_low_ = 0;
   this->y_low_ = 0;
@@ -138,11 +138,11 @@ void ILI9341Display::fill(Color color) {
   this->y_high_ = this->get_height_internal() - 1;
 }
 
-void ILI9341Display::fill_internal_(Color color) {
+void ILI9341Display::fill_internal_(const Color *color) {
   this->set_addr_window_(0, 0, this->get_width_internal(), this->get_height_internal());
   this->start_data_();
 
-  auto color565 = color.to_rgb_565();
+  auto color565 = color->to_rgb_565();
   for (uint32_t i = 0; i < (this->get_width_internal()) * (this->get_height_internal()); i++) {
     this->write_byte(color565 >> 8);
     this->write_byte(color565);
@@ -151,7 +151,7 @@ void ILI9341Display::fill_internal_(Color color) {
   this->end_data_();
 }
 
-void HOT ILI9341Display::draw_absolute_pixel_internal(int x, int y, Color color) {
+void HOT ILI9341Display::draw_absolute_pixel_internal(int x, int y, const Color *color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
 
@@ -162,7 +162,7 @@ void HOT ILI9341Display::draw_absolute_pixel_internal(int x, int y, Color color)
   this->y_high_ = (y > this->y_high_) ? y : this->y_high_;
 
   uint32_t pos = (y * width_) + x;
-  auto color565 = color.to_rgb_565();
+  auto color565 = color->to_rgb_565();
   buffer_[pos] = convert_to_8bit_color_(color565);
 }
 

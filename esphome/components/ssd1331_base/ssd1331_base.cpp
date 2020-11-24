@@ -7,8 +7,6 @@ namespace ssd1331_base {
 
 static const char *TAG = "ssd1331";
 
-static const uint16_t BLACK = 0;
-static const uint16_t WHITE = 0xffff;
 static const uint16_t SSD1331_COLORMASK = 0xffff;
 static const uint8_t SSD1331_MAX_CONTRASTA = 0x91;
 static const uint8_t SSD1331_MAX_CONTRASTB = 0x50;
@@ -78,9 +76,9 @@ void SSD1331::setup() {
   this->command(SSD1331_MASTERCURRENT);  // 0x87
   this->command(0x06);
   set_brightness(this->brightness_);
-  this->fill(BLACK);  // clear display - ensures we do not see garbage at power-on
-  this->display();    // ...write buffer, which actually clears the display's memory
-  this->turn_on();    // display ON
+  this->fill(COLOR_BLACK);  // clear display - ensures we do not see garbage at power-on
+  this->display();          // ...write buffer, which actually clears the display's memory
+  this->turn_on();          // display ON
 }
 void SSD1331::display() {
   this->command(SSD1331_SETCOLUMN);  // set column address
@@ -120,17 +118,17 @@ int SSD1331::get_width_internal() { return 96; }
 size_t SSD1331::get_buffer_length_() {
   return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) * size_t(SSD1331_BYTESPERPIXEL);
 }
-void HOT SSD1331::draw_absolute_pixel_internal(int x, int y, Color color) {
+void HOT SSD1331::draw_absolute_pixel_internal(int x, int y, const Color *color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
-  const uint32_t color565 = color.to_rgb_565();
+  const uint32_t color565 = color->to_rgb_565();
   // where should the bits go in the big buffer array? math...
   uint16_t pos = (x + y * this->get_width_internal()) * SSD1331_BYTESPERPIXEL;
   this->buffer_[pos++] = (color565 >> 8) & 0xff;
   this->buffer_[pos] = color565 & 0xff;
 }
-void SSD1331::fill(Color color) {
-  const uint32_t color565 = color.to_rgb_565();
+void SSD1331::fill(const Color *color) {
+  const uint32_t color565 = color->to_rgb_565();
   for (uint32_t i = 0; i < this->get_buffer_length_(); i++)
     if (i & 1) {
       this->buffer_[i] = color565 & 0xff;

@@ -33,7 +33,7 @@ class ILI9341Display : public PollingComponent,
 
   void update() override;
 
-  void fill(Color color) override;
+  void fill(const Color *color) override;
 
   void dump_config() override;
   void setup() override {
@@ -42,14 +42,14 @@ class ILI9341Display : public PollingComponent,
   }
 
  protected:
-  void draw_absolute_pixel_internal(int x, int y, Color color) override;
+  void draw_absolute_pixel_internal(int x, int y, const Color *color) override;
   void setup_pins_();
 
   void init_lcd_(const uint8_t *init_cmd);
   void set_addr_window_(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
   void invert_display_(bool invert);
   void reset_();
-  void fill_internal_(Color color);
+  void fill_internal_(const Color *color);
   void display_();
   uint16_t convert_to_16bit_color_(uint8_t color_8bit);
   uint8_t convert_to_8bit_color_(uint16_t color_16bit);

@@ -100,7 +100,7 @@ struct Color {
         break;
     }
   }
-  inline bool is_on() ALWAYS_INLINE { return this->raw_32 != 0; }
+  inline bool is_on() const ALWAYS_INLINE { return this->raw_32 != 0; }
   inline Color &operator=(const Color &rhs) ALWAYS_INLINE {
     this->r = rhs.r;
     this->g = rhs.g;
@@ -246,6 +246,6 @@ struct Color {
     return gs4;
   }
 };
-static const Color COLOR_BLACK(0, 0, 0);
-static const Color COLOR_WHITE(1, 1, 1);
+static const Color *COLOR_BLACK = new Color(0, 0, 0, 0);
+static const Color *COLOR_WHITE = new Color(1, 1, 1, 1);
 };  // namespace esphome

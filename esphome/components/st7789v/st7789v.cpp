@@ -102,7 +102,7 @@ void ST7789V::setup() {
   this->write_command_(ST7789_INVON);
 
   // Clear display - ensures we do not see garbage at power-on
-  this->draw_filled_rect_(0, 0, 239, 319, 0x0000);
+  this->draw_filled_rect_(0, 0, 239, 319, BLACK);
 
   delay(120);  // NOLINT
 
@@ -259,11 +259,11 @@ void ST7789V::draw_filled_rect_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
   this->disable();
 }
 
-void HOT ST7789V::draw_absolute_pixel_internal(int x, int y, Color color) {
+void HOT ST7789V::draw_absolute_pixel_internal(int x, int y, const Color *color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
 
-  auto color565 = color.to_rgb_565();
+  auto color565 = color->to_rgb_565();
 
   uint16_t pos = (x + y * this->get_width_internal()) * 2;
   this->buffer_[pos++] = (color565 >> 8) & 0xff;
