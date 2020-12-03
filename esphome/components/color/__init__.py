@@ -15,7 +15,7 @@ CONFIG_SCHEMA = cv.Schema({
 
 
 def to_code(config):
-    cg.variable(config[CONF_ID], cg.StructInitializer(
+    cg.new_variable(config[CONF_ID], cg.StructInitializer(
         ColorStruct,
         ('r', config[CONF_RED]),
         ('g', config[CONF_GREEN]),
