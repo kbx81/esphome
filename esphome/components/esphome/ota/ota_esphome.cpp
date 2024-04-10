@@ -2,12 +2,7 @@
 
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/ota/ota_backend.h"
-#include "esphome/components/ota/ota_backend_arduino_esp32.h"
-#include "esphome/components/ota/ota_backend_arduino_esp8266.h"
-#include "esphome/components/ota/ota_backend_arduino_libretiny.h"
-#include "esphome/components/ota/ota_backend_arduino_rp2040.h"
-#include "esphome/components/ota/ota_backend_esp_idf.h"
+#include "esphome/components/ota/ota.h"
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -24,25 +19,29 @@ static constexpr u_int16_t OTA_BLOCK_SIZE = 8192;
 
 OTAESPHomeComponent *global_ota_component = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-std::unique_ptr<ota::OTABackend> make_ota_backend() {
-#ifdef USE_ARDUINO
-#ifdef USE_ESP8266
-  return make_unique<ota::ArduinoESP8266OTABackend>();
-#endif  // USE_ESP8266
-#ifdef USE_ESP32
-  return make_unique<ota::ArduinoESP32OTABackend>();
-#endif  // USE_ESP32
-#endif  // USE_ARDUINO
-#ifdef USE_ESP_IDF
-  return make_unique<ota::IDFOTABackend>();
-#endif  // USE_ESP_IDF
-#ifdef USE_RP2040
-  return make_unique<ota::ArduinoRP2040OTABackend>();
-#endif  // USE_RP2040
-#ifdef USE_LIBRETINY
-  return make_unique<ota::ArduinoLibreTinyOTABackend>();
-#endif
-}
+// static std::unique_ptr<ota::OTABackend> backend{};
+
+// std::unique_ptr<ota::OTABackend> OTAESPHomeComponent::make_ota_backend() {
+// #ifdef USE_ARDUINO
+// #ifdef USE_ESP8266
+//   return make_unique<ota::ArduinoESP8266OTABackend>();
+// #endif  // USE_ESP8266
+// #ifdef USE_ESP32
+//   return make_unique<ota::ArduinoESP32OTABackend>();
+// #endif  // USE_ESP32
+// #endif  // USE_ARDUINO
+// #ifdef USE_ESP_IDF
+//   return make_unique<ota::IDFOTABackend>();
+// #endif  // USE_ESP_IDF
+// #ifdef USE_RP2040
+//   return make_unique<ota::ArduinoRP2040OTABackend>();
+// #endif  // USE_RP2040
+// #ifdef USE_LIBRETINY
+//   return make_unique<ota::ArduinoLibreTinyOTABackend>();
+// #endif
+// }
+
+// const std::unique_ptr<ota::OTABackend> OTAESPHomeComponent::BACKEND = std::make_unique<ota::OTABackend>();
 
 OTAESPHomeComponent::OTAESPHomeComponent() { global_ota_component = this; }
 
@@ -172,7 +171,7 @@ void OTAESPHomeComponent::handle_() {
   buf[1] = USE_OTA_VERSION;
   this->writeall_(buf, 2);
 
-  backend = make_ota_backend();
+  backend = ota::make_ota_backend();
 
   // Read features - 1 byte
   if (!this->readall_(buf, 1)) {
