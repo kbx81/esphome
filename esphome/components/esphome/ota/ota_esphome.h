@@ -15,7 +15,6 @@ enum OTAESPHomeState { OTA_COMPLETED = 0, OTA_STARTED, OTA_IN_PROGRESS, OTA_ERRO
 class OTAESPHomeComponent : public Component {
  public:
   OTAESPHomeComponent();
-  // static std::unique_ptr<ota::OTABackend> make_ota_backend();
 #ifdef USE_OTA_PASSWORD
   void set_auth_password(const std::string &password) { password_ = password; }
 #endif  // USE_OTA_PASSWORD
