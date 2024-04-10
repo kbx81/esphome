@@ -5,7 +5,6 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
-// #include "esphome/components/ota/ota_backend.h"
 
 namespace esphome {
 namespace ota_esphome {
