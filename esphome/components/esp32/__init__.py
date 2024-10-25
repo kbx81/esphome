@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from typing import Optional, Union
 
+import voluptuous as vol
+
 from esphome import git
 import esphome.codegen as cg
 import esphome.config_validation as cv
@@ -64,6 +66,36 @@ from .gpio import esp32_pin_to_code  # noqa
 _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@esphome/core"]
 AUTO_LOAD = ["preferences"]
+
+CONF_FLASH_SIZE = "flash_size"
+CONF_PARTITIONS = "partitions"
+CONF_PLATFORM_PROVIDER = "platform_provider"
+CONF_RELEASE = "release"
+
+FRAMEWORK_ARDUINO = "arduino"
+FRAMEWORK_ESP_IDF = "esp-idf"
+
+PLATFORM = "platform"
+PLATFORM_PACKAGE = "platform_package"
+PLATFORM_PROVIDER_PIOARDUINO = "pioarduino"
+PLATFORM_PROVIDER_PLATFORMIO = "platformio"
+
+PLATFORM_PROVIDER_DATA = {
+    PLATFORM_PROVIDER_PLATFORMIO: {
+        PLATFORM: "platformio/espressif32@{ver}",
+        PLATFORM_PACKAGE: {
+            FRAMEWORK_ARDUINO: "platformio/framework-arduinoespressif32@{ver}",
+            FRAMEWORK_ESP_IDF: "platformio/framework-espidf@{ver}",
+        },
+    },
+    PLATFORM_PROVIDER_PIOARDUINO: {
+        PLATFORM: "https://github.com/pioarduino/platform-espressif32.git#{ver}",
+        PLATFORM_PACKAGE: {
+            FRAMEWORK_ARDUINO: "framework-arduinoespressif32@https://github.com/espressif/arduino-esp32.git#{ver}",
+            FRAMEWORK_ESP_IDF: "framework-espidf@https://github.com/pioarduino/esp-idf/releases/download/v{ver}.{release}/esp-idf-v{ver}.zip",
+        },
+    },
+}
 
 
 def set_core_data(config):
@@ -207,8 +239,10 @@ def add_extra_build_file(filename: str, path: str) -> bool:
     return False
 
 
-def _format_framework_arduino_version(ver: cv.Version) -> str:
-    # format the given arduino (https://github.com/espressif/arduino-esp32/releases) version to
+def _format_framework_arduino_version(ver: cv.Version, platform_provider: str) -> str:
+    if platform_provider == PLATFORM_PROVIDER_PIOARDUINO:
+        return f"{ver.major}.{ver.minor}.{ver.patch}"
+    # else format the given arduino (https://github.com/espressif/arduino-esp32/releases) version to
     # a PIO platformio/framework-arduinoespressif32 value
     # List of package versions: https://api.registry.platformio.org/v3/packages/platformio/tool/framework-arduinoespressif32
     if ver <= cv.Version(1, 0, 3):
@@ -216,11 +250,20 @@ def _format_framework_arduino_version(ver: cv.Version) -> str:
     return f"~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
 
 
-def _format_framework_espidf_version(ver: cv.Version) -> str:
-    # format the given arduino (https://github.com/espressif/esp-idf/releases) version to
+def _format_framework_espidf_version(ver: cv.Version, platform_provider: str) -> str:
+    if platform_provider == PLATFORM_PROVIDER_PIOARDUINO:
+        return f"{ver.major}.{ver.minor}.{ver.patch}"
+    # else format the given esp-idf (https://github.com/espressif/esp-idf/releases) version to
     # a PIO platformio/framework-espidf value
     # List of package versions: https://api.registry.platformio.org/v3/packages/platformio/tool/framework-espidf
     return f"~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
+
+
+def _format_platform_version(ver: cv.Version, platform_provider: str) -> str:
+    if platform_provider == PLATFORM_PROVIDER_PIOARDUINO:
+        return f"{ver.major}.{ver.minor:02d}.{ver.patch:02d}"
+    # else format for platformio
+    return ver
 
 
 # NOTE: Keep this in mind when updating the recommended version:
@@ -247,6 +290,8 @@ RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(4, 4, 8)
 #  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
 ESP_IDF_PLATFORM_VERSION = cv.Version(5, 4, 0)
 
+RECOMMENDED_PLATFORM_PROVIDER = "platformio"
+
 
 def _arduino_check_versions(value):
     value = value.copy()
@@ -268,7 +313,9 @@ def _arduino_check_versions(value):
         source = value.get(CONF_SOURCE, None)
 
     value[CONF_VERSION] = str(version)
-    value[CONF_SOURCE] = source or _format_framework_arduino_version(version)
+    value[CONF_SOURCE] = source or _format_framework_arduino_version(
+        version, value[CONF_PLATFORM_PROVIDER]
+    )
 
     value[CONF_PLATFORM_VERSION] = value.get(
         CONF_PLATFORM_VERSION, _parse_platform_version(str(ARDUINO_PLATFORM_VERSION))
@@ -306,7 +353,9 @@ def _esp_idf_check_versions(value):
         raise cv.Invalid("Only ESP-IDF 4.0+ is supported.")
 
     value[CONF_VERSION] = str(version)
-    value[CONF_SOURCE] = source or _format_framework_espidf_version(version)
+    value[CONF_SOURCE] = source or _format_framework_espidf_version(
+        version, value[CONF_PLATFORM_PROVIDER]
+    )
 
     value[CONF_PLATFORM_VERSION] = value.get(
         CONF_PLATFORM_VERSION, _parse_platform_version(str(ESP_IDF_PLATFORM_VERSION))
@@ -325,7 +374,7 @@ def _parse_platform_version(value):
     try:
         # if platform version is a valid version constraint, prefix the default package
         cv.platformio_version_constraint(value)
-        return f"platformio/espressif32@{value}"
+        return value
     except cv.Invalid:
         return value
 
@@ -393,7 +442,11 @@ ARDUINO_FRAMEWORK_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Optional(CONF_VERSION, default="recommended"): cv.string_strict,
+            cv.Optional(CONF_RELEASE): cv.string_strict,
             cv.Optional(CONF_SOURCE): cv.string_strict,
+            cv.Optional(
+                CONF_PLATFORM_PROVIDER, default=RECOMMENDED_PLATFORM_PROVIDER
+            ): cv.one_of(*PLATFORM_PROVIDER_DATA),
             cv.Optional(CONF_PLATFORM_VERSION): _parse_platform_version,
             cv.Optional(CONF_ADVANCED, default={}): cv.Schema(
                 {
@@ -412,7 +465,11 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Optional(CONF_VERSION, default="recommended"): cv.string_strict,
+            cv.Optional(CONF_RELEASE): cv.string_strict,
             cv.Optional(CONF_SOURCE): cv.string_strict,
+            cv.Optional(
+                CONF_PLATFORM_PROVIDER, default=RECOMMENDED_PLATFORM_PROVIDER
+            ): cv.one_of(*PLATFORM_PROVIDER_DATA),
             cv.Optional(CONF_PLATFORM_VERSION): _parse_platform_version,
             cv.Optional(CONF_SDKCONFIG_OPTIONS, default={}): {
                 cv.string_strict: cv.string_strict
@@ -443,8 +500,6 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
 )
 
 
-FRAMEWORK_ESP_IDF = "esp-idf"
-FRAMEWORK_ARDUINO = "arduino"
 FRAMEWORK_SCHEMA = cv.typed_schema(
     {
         FRAMEWORK_ESP_IDF: ESP_IDF_FRAMEWORK_SCHEMA,
@@ -464,8 +519,6 @@ FLASH_SIZES = [
     "32MB",
 ]
 
-CONF_FLASH_SIZE = "flash_size"
-CONF_PARTITIONS = "partitions"
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -499,7 +552,22 @@ async def to_code(config):
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
 
     conf = config[CONF_FRAMEWORK]
-    cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
+    try:
+        platform = PLATFORM_PROVIDER_DATA[conf[CONF_PLATFORM_PROVIDER]][
+            PLATFORM
+        ].format(
+            ver=_format_platform_version(
+                cv.Version.parse(cv.version_number(conf[CONF_PLATFORM_VERSION])),
+                conf[CONF_PLATFORM_PROVIDER],
+            )
+        )
+    except vol.Invalid:
+        platform = conf[CONF_PLATFORM_VERSION]
+
+    cg.add_platformio_option(
+        "platform",
+        platform,
+    )
 
     if CONF_ADVANCED in conf and conf[CONF_ADVANCED][CONF_IGNORE_EFUSE_CUSTOM_MAC]:
         cg.add_define("USE_ESP32_IGNORE_EFUSE_CUSTOM_MAC")
@@ -517,7 +585,11 @@ async def to_code(config):
         cg.add_build_flag("-Wno-nonnull-compare")
         cg.add_platformio_option(
             "platform_packages",
-            [f"platformio/framework-espidf@{conf[CONF_SOURCE]}"],
+            [
+                PLATFORM_PROVIDER_DATA[conf[CONF_PLATFORM_PROVIDER]][PLATFORM_PACKAGE][
+                    conf[CONF_TYPE]
+                ].format(ver=conf[CONF_SOURCE], release=conf.get(CONF_RELEASE, None))
+            ],
         )
         # platformio/toolchain-esp32ulp does not support linux_aarch64 yet and has not been updated for over 2 years
         # This is espressif's own published version which is more up to date.
@@ -587,7 +659,11 @@ async def to_code(config):
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ARDUINO")
         cg.add_platformio_option(
             "platform_packages",
-            [f"platformio/framework-arduinoespressif32@{conf[CONF_SOURCE]}"],
+            [
+                PLATFORM_PROVIDER_DATA[conf[CONF_PLATFORM_PROVIDER]][PLATFORM_PACKAGE][
+                    conf[CONF_TYPE]
+                ].format(ver=conf[CONF_SOURCE], release=conf.get(CONF_RELEASE, None))
+            ],
         )
 
         if CONF_PARTITIONS in config:
