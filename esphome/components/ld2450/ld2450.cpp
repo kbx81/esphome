@@ -761,15 +761,15 @@ void LD2450Component::readline_(int readch) {
   }
   if (this->buffer_data_[this->buffer_pos_ - 2] == DATA_FRAME_FOOTER[0] &&
       this->buffer_data_[this->buffer_pos_ - 1] == DATA_FRAME_FOOTER[1]) {
-    ESP_LOGV(TAG, "Handling Periodic Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
+    ESP_LOGW(TAG, "Handling Periodic Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
     this->handle_periodic_data_();
     this->buffer_pos_ = 0;  // Reset position index for next frame
   } else if (ld2450::validate_header_footer(CMD_FRAME_FOOTER, &this->buffer_data_[this->buffer_pos_ - 4])) {
-    ESP_LOGV(TAG, "Handling Ack Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
+    ESP_LOGW(TAG, "Handling Ack Data: %s", format_hex_pretty(this->buffer_data_, this->buffer_pos_).c_str());
     if (this->handle_ack_data_()) {
       this->buffer_pos_ = 0;  // Reset position index for next message
     } else {
-      ESP_LOGV(TAG, "Ack Data incomplete");
+      ESP_LOGW(TAG, "Ack Data incomplete");
     }
   }
 }

@@ -38,7 +38,7 @@ using namespace ld24xx;
 
 // Constants
 static constexpr uint8_t DEFAULT_PRESENCE_TIMEOUT = 5;  // Timeout to reset presense status 5 sec.
-static constexpr uint8_t MAX_LINE_LENGTH = 41;          // Max characters for serial buffer
+static constexpr uint8_t MAX_LINE_LENGTH = 255;         // Max characters for serial buffer
 static constexpr uint8_t MAX_TARGETS = 3;               // Max 3 Targets in LD2450
 static constexpr uint8_t MAX_ZONES = 3;                 // Max 3 Zones in LD2450
 
